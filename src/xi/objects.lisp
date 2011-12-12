@@ -14,6 +14,8 @@
             (:constructor alloc-fun)
             (:conc-name fun-))
   name
+  args
+  env
   code)
 
 (defstruct (instance-object

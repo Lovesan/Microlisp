@@ -100,8 +100,14 @@
                       :key #'car)))
     (if (not dynvar)
       (case (gethash symbol +global-var-info+)
-        ((:static :macro :dynamic)
+        ((:static :dynamic)
          (setf (sym-value symbol) new-value))
+        (:macro (setf (sym-value symbol)
+                      (if (function-object-p new-value)
+                        new-value
+                        (alloc-fun
+                          :args (list [%form] [%env])
+                          :code (constantly new-value)))))
         (:constant (error-constant-modification symbol))
         (T (error-undeclared-variable symbol)))
       (setf (cdr dynvar) new-value))))
@@ -111,18 +117,18 @@
     (if (null var)
       (case (gethash symbol +global-var-info+)
         (:dynamic (get-symbol-value symbol))
-        ((:static :constant :macro)
+        ((:static :constant)
          (if (eq :unbound (sym-value symbol))
            (error-unbound-variable symbol)
            (sym-value symbol)))
+        (:macro (if (eq :unbound (sym-value symbol))
+                  (error-unbound-variable symbol)
+                  (eval-form (eval-macroexpand (sym-value symbol) symbol)
+                             env)))
         (T (error-undeclared-variable symbol)))
       (ecase (second var)
-        (:dynamic (get-symbol-value symbol))
-        ;; we pass `nil' here because XI lexenv structure
-        ;;  is not suitable for target lisp.
-        ;; TODO: make lexenv a lisp object.        
-        (:macro (eval-form (eval-call (cddr var)
-                                      (list symbol nil))
+        (:dynamic (get-symbol-value symbol))   
+        (:macro (eval-form (eval-macroexpand (cddr var) symbol)
                            env))
         ((:static :constant) (cddr var))))))
 
@@ -146,6 +152,13 @@
             (:macro (eval-form `([setf] ,symbol ,value) env)))))
       (error-not-symbol (second form)))
     (error-arg-count (rest form))))
+
+;; we pass `nil' here because XI lexenv structure
+;;  is not suitable for target lisp.
+;; TODO: make lexenv a lisp object. 
+(defun eval-macroexpand (expander form)
+  (let ((*dynamics* '()))
+    (eval-call expander (list form nil))))
 
 ;; Microlisp set of special operators is very similiar to that
 ;;  of Common Lisp, so in case of XI we reuse existing CL control structures
