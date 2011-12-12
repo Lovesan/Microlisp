@@ -1,0 +1,9 @@
+*~
+*.tmp
+*.fasl
+*.fas
+*.wx32fsl
+*.wx64fsl
+*.diff
+*.patch
+*.swp

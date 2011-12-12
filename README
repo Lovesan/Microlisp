@@ -1,0 +1,6 @@
+Codename: Microlisp
+
+Features: lisp-1, all instances are funcallable, sane namespace system
+  and so on. NO continuations, but CL-like control structures.
+
+`XI'(src/xi) is a work-in-progress cross-interpreter, written in Common Lisp.
