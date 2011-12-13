@@ -66,10 +66,6 @@
   (eval-call (sym-value [signal-error])
              (list (sym-value [unbound-variable]) symbol)))
 
-(defun error-undeclared-variable (symbol)
-  (eval-call (sym-value [signal-error])
-             (list (sym-value [undeclared-variable]) symbol)))
-
 (defun error-constant-modification (symbol)
   (eval-call (sym-value [signal-error])
              (list (sym-value [constant-modification]) symbol)))
@@ -136,7 +132,9 @@
         (:dynamic (get-symbol-value symbol))
         ((:static :constant) (sym-value symbol))
         (:macro (eval-form (sym-value symbol) env))
-        (T (error-undeclared-variable symbol)))
+        (T (if (eq :unbound (sym-value symbol))
+             (error-unbound-variable symbol)
+             (sym-value symbol))))
       (ecase (second var)
         (:dynamic (get-symbol-value symbol))   
         (:macro (eval-form (cddr symbol) env))
@@ -207,7 +205,9 @@
                  (:dynamic
                   (eval-call (get-symbol-value f) (eval-args (cdr form) env)))
                  (:macro (eval-macroexpand (sym-value f) form env))
-                 (T (error-undeclared-variable f)))
+                 (T (if (eq :unbound (sym-value f))
+                      (error-unbound-variable f)
+                      (eval-call (sym-value f) (eval-args (cdr form) env)))))
                (ecase (second var)
                  (:dynamic
                   (eval-call (get-symbol-value f) (eval-args (cdr form) env)))
